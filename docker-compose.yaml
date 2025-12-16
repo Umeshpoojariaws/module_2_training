@@ -1,0 +1,19 @@
+version: "3.8"
+services:
+  mlflow-server:
+    image: ubuntu/mlflow:2.1.1_1.0-22.04
+    # -----------------------------------------------------------------
+    # 💥 ADD THIS LINE
+    platform: linux/amd64
+    # -----------------------------------------------------------------
+    ports:
+      - "5001:5000"
+    environment:
+      # Use local storage for artifacts for simplicity
+      - MLFLOW_TRACKING_URI=http://0.0.0.0:5001
+      - MLFLOW_ARTIFACT_ROOT=/mlflow_artifacts
+    volumes:
+      # Persist the runs and models
+      - ./mlflow_data/artifacts:/mlflow_artifacts
+      - ./mlflow_data/backend:/mlflow_backend
+    command: mlflow server --host 0.0.0.0 --port 5000 --serve-artifacts
