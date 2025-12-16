@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-service-deployment
+  labels:
+    app: ml-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ml-service
+  template:
+    metadata:
+      labels:
+        app: ml-service
+    spec:
+      # Critical: Secret to pull private images from GHCR (created in our Step 1 of original plan)
+      imagePullSecrets:
+      - name: ghcr-login-secret
+      containers:
+      - name: ml-service-container
+        # IMPORTANT: The image tag will be updated manually during CD
+        image: ghcr.io/<YOUR_GH_USERNAME>/mlops-zoomcamp/ml-service:latest 
+        ports:
+        - containerPort: 9699 # Matches the port exposed in Dockerfile
