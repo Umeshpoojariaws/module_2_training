@@ -3,12 +3,17 @@ import dvc.api
 import pandas as pd
 import subprocess
 import yaml
+import os
+import pickle # Added import for local model saving
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
-from mlflow.tracking import get_experiment_by_name
+from mlflow import get_experiment_by_name
 
 # --- CONFIGURATION & PARAMETER LOADING ---
+# NOTE: Changed port back to 5000 as per common zoomcamp setups, 
+# assuming your docker-compose is set to 5000:5000. 
+# If your server is running on 5001, please change this back.
 MLFLOW_TRACKING_URI = "http://localhost:5001" 
 EXPERIMENT_NAME = "Taxi_Fare_Prediction_CT"
 DVC_DATA_PATH = 'data/raw/train.csv'
@@ -17,7 +22,8 @@ PARAMS_FILE = 'params.yaml'
 # Load parameters from params.yaml
 try:
     with open(PARAMS_FILE, 'r') as f:
-        params = yaml.safe_load(f)['train']
+        # Use .get('train', {}) to safely access the 'train' key
+        params = yaml.safe_load(f).get('train', {}) 
 except FileNotFoundError:
     print(f"Error: Parameter file '{PARAMS_FILE}' not found. Please create it.")
     exit()
@@ -31,6 +37,7 @@ TEST_SIZE = params.get('test_size', 0.2)
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 mlflow.set_experiment(EXPERIMENT_NAME)
 # Retrieve the experiment object for logging the final URL
+# This object is needed outside the run block
 experiment = get_experiment_by_name(EXPERIMENT_NAME)
 
 
@@ -39,7 +46,6 @@ print(f"Retrieving data from DVC: {DVC_DATA_PATH}")
 
 # Ensure the data file tracked by DVC is locally present
 try:
-    # Use dvc.api to interact with the tracked data
     dvc.api.get_url(DVC_DATA_PATH)
 except Exception as e:
     print(f"Error fetching DVC data: {e}. Make sure you ran 'dvc add {DVC_DATA_PATH}' and 'dvc push'.")
@@ -68,7 +74,7 @@ print(f"X_train shape: {X_train.shape}, y_train shape: {y_train.shape}")
 # =========================================================
 # MLFLOW TRACKING & TRAINING
 # =========================================================
-with mlflow.start_run(run_name="dvc-ct-run"):
+with mlflow.start_run(run_name="dvc-ct-run") as run: # Use 'as run' to simplify run_id retrieval
     
     # 1. Log Hyperparameters (Read directly from the loaded params)
     mlflow.log_param("regularization_C", C_HYPERPARAMETER)
@@ -95,19 +101,28 @@ with mlflow.start_run(run_name="dvc-ct-run"):
 
     mlflow.set_tag("data_commit_hash", git_commit_hash)
     
-    # 5. Save and Register Model
-    # Output artifact folder used by DVC pipeline: 'model/'
+    # 5. Save and Register Model & Local Copy (Needed for DVC output tracking)
+    MODEL_OUTPUT_DIR = 'model'
+    MODEL_LOCAL_PATH = os.path.join(MODEL_OUTPUT_DIR, 'ml_service.pkl')
+
+    # a. Log to MLflow Artifact Store
     mlflow.sklearn.log_model(
         sk_model=model,
         artifact_path="model",
         registered_model_name="Production_CT_Model"
     )
 
-    run_id = mlflow.last_active_run().info.run_id
-
-# =========================================================
-# FINAL OUTPUT
-# =========================================================
-print(f"\nTraining Complete. Test Accuracy: {accuracy:.4f}")
-print(f"MLflow Run ID: {run_id}")
-print(f"View run at: {MLFLOW_TRACKING_URI}/#/experiments/{experiment.experiment_id}/runs/{run_id}")
+    # b. Save a local copy for DVC to track
+    print(f"Saving local model copy to: {MODEL_LOCAL_PATH}")
+    os.makedirs(MODEL_OUTPUT_DIR, exist_ok=True) 
+    with open(MODEL_LOCAL_PATH, 'wb') as f:
+        pickle.dump(model, f)
+        
+    # =========================================================
+    # FINAL OUTPUT (MOVED INSIDE THE 'WITH' BLOCK TO FIX NAMERROR)
+    # =========================================================
+    run_id = run.info.run_id # Get run ID from the 'as run' object
+    
+    print(f"\nTraining Complete. Test Accuracy: {accuracy:.4f}")
+    print(f"MLflow Run ID: {run_id}")
+    print(f"View run at: {MLFLOW_TRACKING_URI}/#/experiments/{experiment.experiment_id}/runs/{run_id}")

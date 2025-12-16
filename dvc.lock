@@ -1,0 +1,23 @@
+schema: '2.0'
+stages:
+  train_model:
+    cmd: python train.py
+    deps:
+    - path: data/raw/train.csv
+      hash: md5
+      md5: bcb98d5a17d4ae91f6927a30db3275b7
+      size: 565054
+    - path: train.py
+      hash: md5
+      md5: 032d3c60a401d7214f902d9968b4c77b
+      size: 4751
+    params:
+      params.yaml:
+        train.C_hyperparameter: 0.1
+        train.random_state: 42
+    outs:
+    - path: model
+      hash: md5
+      md5: 4ddfaafa9171b063f040ec01de34c474.dir
+      size: 852
+      nfiles: 1

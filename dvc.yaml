@@ -8,4 +8,4 @@ stages:
     - train.C_hyperparameter
     - train.random_state
     outs:
-    - model/ml_service.pkl
+    - model
