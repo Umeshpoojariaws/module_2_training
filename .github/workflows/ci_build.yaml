@@ -23,7 +23,7 @@ jobs:
       - name: Set Image Tag Variables
         id: image_tag_vars
         run: |
-          # Read version from the VERSION file
+          # Read version from the VERSION file and strip leading/trailing whitespace
           VERSION_TAG=$(cat VERSION | tr -d '[:space:]')
           
           # Convert github.repository (e.g., YourUser/repo-name) to lowercase
@@ -33,9 +33,11 @@ jobs:
           # Define the full image name
           IMAGE_NAME="$REPO_LOWERCASE/ml-service"
           
+          # Set the variables as GitHub Action Outputs
           echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_OUTPUT
           echo "TAG=$VERSION_TAG" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=$VERSION_TAG"
+          
+          echo "Image Version Tag determined: $VERSION_TAG"
 
       # 2. Log in to GitHub Container Registry
       - name: Log in to GHCR
