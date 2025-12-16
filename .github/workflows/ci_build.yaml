@@ -1,3 +1,4 @@
+---
 name: CI Pipeline (Test, Build, Push)
 
 on:
@@ -6,7 +7,6 @@ on:
       - main
   workflow_dispatch:
 
-# Define permissions for writing to GHCR
 permissions:
   contents: read
   packages: write
@@ -26,8 +26,7 @@ jobs:
           # Read version from the VERSION file and strip leading/trailing whitespace
           VERSION_TAG=$(cat VERSION | tr -d '[:space:]')
           
-          # Convert github.repository (e.g., YourUser/repo-name) to lowercase
-          # This is CRUCIAL for GHCR compliance.
+          # Convert github.repository (e.g., YourUser/repo-name) to lowercase for GHCR
           REPO_LOWERCASE=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           
           # Define the full image name
@@ -53,10 +52,21 @@ jobs:
         with:
           context: ./deployment 
           push: true
-          # Tags the image with the VERSION file content (e.g., v1.0.0.0)
+          # Tags the image with the VERSION file content
           tags: ghcr.io/${{ steps.image_tag_vars.outputs.IMAGE_NAME }}:${{ steps.image_tag_vars.outputs.TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           
+      # 4. Final Output Step (Error Fix is primarily in indentation/trailing spaces here)
       - name: Output Image Tag
         run: echo "Image pushed successfully with tag: ${{ steps.image_tag_vars.outputs.TAG }}"
+# Add a final empty newline character here
+        shell: bash
+        env:
+          IMAGE_NAME: ${{ steps.image_tag_vars.outputs.IMAGE_NAME }}
+          TAG: ${{ steps.image_tag_vars.outputs.TAG }}
+        run: |
+          echo "Image Name: $IMAGE_NAME"
+          echo "Image Tag: $TAG"
+          echo "Image pushed successfully with tag: $TAG"
+          echo "Image Name: $IMAGE_NAME"
