@@ -1,43 +1,33 @@
 ---
 name: CI Pipeline (Test, Build, Push)
-
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-
 permissions:
   contents: read
   packages: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       # 1. Read Version from File and Set Image Tag Variables
       - name: Set Image Tag Variables
         id: image_tag_vars
         run: |
           # Read version from the VERSION file and strip leading/trailing whitespace
           VERSION_TAG=$(cat VERSION | tr -d '[:space:]')
-          
           # Convert github.repository (e.g., YourUser/repo-name) to lowercase for GHCR
           REPO_LOWERCASE=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          
           # Define the full image name
           IMAGE_NAME="$REPO_LOWERCASE/ml-service"
-          
           # Set the variables as GitHub Action Outputs
           echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_OUTPUT
           echo "TAG=$VERSION_TAG" >> $GITHUB_OUTPUT
-          
           echo "Image Version Tag determined: $VERSION_TAG"
-
       # 2. Log in to GitHub Container Registry
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -45,27 +35,24 @@ jobs:
           registry: ghcr.io
           username: ${{ secrets.GHCR_USERNAME }}
           password: ${{ secrets.GHCR_TOKEN }}
-
       # 3. Build and Push the Docker Image
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./deployment 
+          context: ./deployment
           push: true
           # Tags the image with the VERSION file content
           tags: ghcr.io/${{ steps.image_tag_vars.outputs.IMAGE_NAME }}:${{ steps.image_tag_vars.outputs.TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          
       # 4. Final Output Step (Error Fix is primarily in indentation/trailing spaces here)
       - name: Output Image Tag
-        run: echo "Image pushed successfully with tag: ${{ steps.image_tag_vars.outputs.TAG }}"
-# Add a final empty newline character here
         shell: bash
         env:
           IMAGE_NAME: ${{ steps.image_tag_vars.outputs.IMAGE_NAME }}
           TAG: ${{ steps.image_tag_vars.outputs.TAG }}
         run: |
+          echo "Image pushed successfully with tag: ${{ steps.image_tag_vars.outputs.TAG }}"
           echo "Image Name: $IMAGE_NAME"
           echo "Image Tag: $TAG"
           echo "Image pushed successfully with tag: $TAG"
