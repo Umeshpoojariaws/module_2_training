@@ -10,6 +10,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the model and application code
 COPY deployment/app.py .
 COPY model/ml_service.pkl ./model/
+COPY model/ml_service.pkl /model/ml_service.pkl
+
 
 # Expose the application port (assuming FastAPI runs on 9699)
 EXPOSE 9699
