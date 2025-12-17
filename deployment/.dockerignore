@@ -1,0 +1,6 @@
+.git
+*.md
+tests/
+__pycache__
+.env
+!model/ml_service.pkl  # Explicitly include if needed
