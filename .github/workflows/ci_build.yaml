@@ -43,7 +43,7 @@ jobs:
         uses: docker/build-push-action@v6  # Updated for better cache stability
         with:
           context: . #/deployment
-          dockerfile: deployment/Dockerfile
+          file: deployment/Dockerfile
           push: true
           # Tags the image with the VERSION file content
           tags: ghcr.io/${{ steps.image_tag_vars.outputs.IMAGE_NAME }}:${{ steps.image_tag_vars.outputs.TAG }}
